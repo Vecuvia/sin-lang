@@ -7,7 +7,7 @@ import re
 
 class Enum(tuple): __getattr__ = tuple.index
 
-Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN ASSIGN PYTHON_CODE IF THEN ELSE END INFIX_CALL FUNCTION COMMA".split())
+Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN ASSIGN PYTHON_CODE IF THEN ELSE END INFIX_CALL FUNCTION COMMA WHILE DO".split())
 
 class Token(object):
     __slots__ = ["kind", "value", "pos"]
@@ -29,6 +29,8 @@ Token_Patterns = [
     (r'else', Tokens.ELSE),
     (r'end', Tokens.END),
     (r'fun', Tokens.FUNCTION),
+    (r'while', Tokens.WHILE),
+    (r'do', Tokens.DO),
     (r'`[A-Za-z_][A-Za-z0-9_]*`', Tokens.INFIX_CALL),
     (r'{[A-Za-z_][A-Za-z0-9_.]*}', Tokens.PYTHON_CODE),
     (r'[A-Za-z_][A-Za-z0-9_]*', Tokens.IDENTIFIER)
@@ -130,6 +132,16 @@ class Condition(ASTNode):
         elif self.if_false:
             return self.if_false.execute(env)
 
+class Loop(ASTNode):
+    def __init__(self, condition, block):
+        self.condition, self.block = condition, block
+    def __str__(self):
+        return "(loop {0} {1})".format(self.condition, self.block)
+    def execute(self, env=None):
+        if env is None: env = {}
+        while self.condition.execute(env):
+            self.block.execute(env)
+
 class Function(ASTNode):
     def __init__(self, params, code):
         self.params, self.code = params, code
@@ -190,6 +202,12 @@ class Interpreter(object):
                 if_false = self.block()
             self.expect(Tokens.END)
             return Condition(condition, if_true, if_false)
+        elif self.accept(Tokens.WHILE):
+            condition = self.expression()
+            self.expect(Tokens.DO)
+            block = self.block()
+            self.expect(Tokens.END)
+            return Loop(condition, block)
         elif self.accept(Tokens.FUNCTION):
             self.expect(Tokens.LEFT_ROUND_PAREN)
             self.advance()
@@ -232,8 +250,27 @@ sub = fun (a, b) # Subtracts b from a
   {int.__sub__}(a, b)
 end
 
+mul = fun (a, b) # Multiplies two numbers together
+  {int.__mul__}(a, b)
+end
+
 print = fun (s) # Prints a string
   {print}(s)
+end
+
+gt = fun (a, b)
+  {int.__gt__}(a, b)
+end
+
+print(3 `gt` 5)
+print(5 `gt` 3)
+
+factorial = fun (n)
+  if n `gt` 1 then
+    n `mul` factorial(n `sub` 1)
+  else
+    1
+  end
 end
 
 a = 2 `add` 2 `sub` 3
@@ -247,6 +284,12 @@ end
 print(add(2, 3) `add` 5)
 print(b)
 print(a)
+print(factorial(6))
+
+i = 10
+while i = i `sub` 1 do
+  print(i)
+end
 """
 
 tree = Interpreter().parse(test)
