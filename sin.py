@@ -86,7 +86,7 @@ class Call(ASTNode):
     def __init__(self, name, *params):
         self.name, self.params = name, params
     def __str__(self):
-        return "({0} {1})".format(self.name, " ".join(map(str, self.params)))
+        return "(call {0} {1})".format(self.name, " ".join(map(str, self.params)))
     def execute(self, env=None):
         if env is None: env = {}
         function = self.name.execute(env)
@@ -221,11 +221,13 @@ class Interpreter(object):
     def primary(self):
         left = self.atom()
         if self.accept(Tokens.LEFT_ROUND_PAREN):
+            #print("** accepted", self.text[self.token.pos-30:self.token.pos+30])
             params = [self.expression()]
             while self.accept(Tokens.COMMA):
                 params.append(self.expression())
-            self.accept(Tokens.RIGHT_ROUND_PAREN)
-            if type(left) is Variable or type(left) is Function:
+            #print(params)
+            self.expect(Tokens.RIGHT_ROUND_PAREN)
+            if type(left) in (Variable, Function, Condition):
                 return Call(left, *params)
             elif type(left) is PyLiteral:
                 return PyCall(eval(left.value), *params)
@@ -236,10 +238,6 @@ class Interpreter(object):
             operation = self.token.value[1:-1]
             right = self.expression()
             return Call(Variable(operation), left, right)
-        elif self.accept(Tokens.PYTHON_CODE):
-            operation = eval(self.token.value[1:-1])
-            right = self.expression()
-            return PyCall(operation, left, right)
         elif self.accept(Tokens.ASSIGN):
             right = self.expression()
             return Assign(left, right)
@@ -252,7 +250,7 @@ class Interpreter(object):
             expression = self.expression()
         return Block(expressions)
 
-test = """
+prelude = """
 add = fun (a, b) # Adds two numbers together
   {int.__add__}(a, b)
 end
@@ -268,7 +266,9 @@ end
 print = fun (s) # Prints a string
   {print}(s)
 end
+"""
 
+test_1 = prelude + """
 gt = fun (a, b)
   {int.__gt__}(a, b)
 end
@@ -320,6 +320,12 @@ end
 print((fun (a) a `mul` 2 end)(8))
 """
 
-tree = Interpreter().parse(test)
+test_2 = prelude + """
+a = 1
+print(mul(2, 12))
+print((if a then mul else add end)(2, 12))
+"""
+
+tree = Interpreter().parse(test_2)
 #print(tree)
 tree.execute()
