@@ -7,7 +7,7 @@ import re
 
 class Enum(tuple): __getattr__ = tuple.index
 
-Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN".split())
+Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN ASSIGN PYTHON_CODE".split())
 
 class Token(object):
     __slots__ = ["kind", "value", "pos"]
@@ -20,7 +20,9 @@ Token_Patterns = [
     (r'[ \n\t]+', None),
     (r'\(', Tokens.LEFT_ROUND_PAREN),
     (r'\)', Tokens.RIGHT_ROUND_PAREN),
+    (r'=', Tokens.ASSIGN),
     (r'[+-]?[0-9]+', Tokens.NUMBER),
+    (r'`[A-Za-z_][A-Za-z0-9_.]*`', Tokens.PYTHON_CODE),
     (r'[A-Za-z_][A-Za-z0-9_]*', Tokens.IDENTIFIER)
 ]
 
@@ -72,6 +74,26 @@ class Call(ASTNode):
         if self.name == "add":
             return sum(map(lambda i: i.execute(env), self.params))
 
+class PyCall(ASTNode):
+    def __init__(self, function, *params):
+        self.function, self.params = function, params
+    def __str__(self):
+        return "({0} {1})".format(self.function.__name__, " ".join(map(str, self.params)))
+    def execute(self, env=None):
+        if env is None: env = {}
+        return self.function(*[param.execute(env) for param in self.params])
+
+class Assign(ASTNode):
+    def __init__(self, variable, expression):
+        self.variable, self.expression = variable, expression
+    def __str__(self):
+        return "(! {0} {1})".format(self.variable, self.expression)
+    def execute(self, env=None):
+        if env is None: env = {}
+        value = self.expression.execute(env)
+        env[self.variable.name] = value
+        return value
+
 class Interpreter(object):
     def parse(self, text):
         self.text = text
@@ -104,8 +126,15 @@ class Interpreter(object):
             operation = self.token.value
             right = self.expression()
             return Call(operation, left, right)
+        elif self.accept(Tokens.PYTHON_CODE):
+            operation = eval(self.token.value[1:-1])
+            right = self.expression()
+            return PyCall(operation, left, right)
+        elif self.accept(Tokens.ASSIGN):
+            right = self.expression()
+            return Assign(left, right)
         return left
 
-tree = Interpreter().parse("(a add 2) add 3")
+tree = Interpreter().parse("((a = 2) add 2) `int.__add__` 3")
 print(tree)
-print(tree.execute({"a": 1}))
+print(tree.execute())

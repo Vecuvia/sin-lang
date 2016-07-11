@@ -6,5 +6,5 @@ The Simple INtepreted language.
 
 ```bnf
 <atom> := <identifier> | <literal> | "(" <expression> ")"
-<expression> := <atom> [ <identifier> <expression> ]
+<expression> := <atom> ( <identifier> <expression> | "=" <expression> )
 ```
