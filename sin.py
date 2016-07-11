@@ -43,6 +43,26 @@ def tokenize(text):
         else:
             position = match.end(0)
 
+class ASTNode(object): pass
+
+class Variable(ASTNode):
+    def __init__(self, name):
+        self.name = name
+    def __str__(self):
+        return "(var {0})".format(self.name)
+
+class Literal(ASTNode):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return "(lit {0})".format(self.value)
+
+class Call(ASTNode):
+    def __init__(self, name, *params):
+        self.name, self.params = name, params
+    def __str__(self):
+        return "({0} {1})".format(self.name, " ".join(map(str, self.params)))
+
 class Interpreter(object):
     def parse(self, text):
         self.text = text
@@ -62,9 +82,9 @@ class Interpreter(object):
             raise SyntaxError("{0}: expected {1}".format(self.token, Tokens[kind]))
     def atom(self):
         if self.accept(Tokens.IDENTIFIER):
-            return "%s" % self.token.value
+            return Variable(self.token.value)
         elif self.accept(Tokens.NUMBER):
-            return "%s" % self.token.value
+            return Literal(self.token.value)
         elif self.accept(Tokens.LEFT_ROUND_PAREN):
             value = self.expression()
             self.expect(Tokens.RIGHT_ROUND_PAREN)
@@ -74,7 +94,7 @@ class Interpreter(object):
         if self.accept(Tokens.IDENTIFIER):
             operation = self.token.value
             right = self.expression()
-            return "(%s %s %s)" % (left, operation, right)
+            return Call(operation, left, right)
         return left
 
-print(Interpreter().parse("(1 add 2) add 3"))
+print(Interpreter().parse("(a add 2) add 3"))
