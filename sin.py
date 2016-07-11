@@ -74,6 +74,14 @@ class Literal(ASTNode):
     def execute(self, env=None):
         return eval(self.value)
 
+class PyLiteral(ASTNode):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return "(py {0})".format(self.value)
+    def execute(self, env=None):
+        return eval(self.value)
+
 class Call(ASTNode):
     def __init__(self, name, *params):
         self.name, self.params = name, params
@@ -81,11 +89,9 @@ class Call(ASTNode):
         return "({0} {1})".format(self.name, " ".join(map(str, self.params)))
     def execute(self, env=None):
         if env is None: env = {}
+        function = self.name.execute(env)
         params = [param.execute(env) for param in self.params]
-        if self.name == "add":
-            return sum(params)
-        elif self.name in env:
-            return env[self.name].call(env, params)
+        return function.call(env, params)
 
 class PyCall(ASTNode):
     def __init__(self, function, *params):
@@ -175,18 +181,11 @@ class Interpreter(object):
         if not self.accept(kind):
             raise SyntaxError("{0}: expected {1}".format(self.token, Tokens[kind]))
     def atom(self):
-        if self.accept(Tokens.IDENTIFIER) or self.accept(Tokens.PYTHON_CODE):
+        if self.accept(Tokens.IDENTIFIER):
             identifier = self.token
-            if self.accept(Tokens.LEFT_ROUND_PAREN):
-                params = [self.expression()]
-                while self.accept(Tokens.COMMA):
-                    params.append(self.expression())
-                self.expect(Tokens.RIGHT_ROUND_PAREN)
-                if identifier.kind == Tokens.IDENTIFIER:
-                    return Call(identifier.value, *params)
-                else:
-                    return PyCall(eval(identifier.value[1:-1]), *params)
             return Variable(self.token.value)
+        elif self.accept(Tokens.PYTHON_CODE):
+            return PyLiteral(self.token.value[1:-1])
         elif self.accept(Tokens.NUMBER):
             return Literal(self.token.value)
         elif self.accept(Tokens.LEFT_ROUND_PAREN):
@@ -219,12 +218,24 @@ class Interpreter(object):
             code = self.block()
             self.expect(Tokens.END)
             return Function(params, code)
-    def expression(self):
+    def primary(self):
         left = self.atom()
+        if self.accept(Tokens.LEFT_ROUND_PAREN):
+            params = [self.expression()]
+            while self.accept(Tokens.COMMA):
+                params.append(self.expression())
+            self.accept(Tokens.RIGHT_ROUND_PAREN)
+            if type(left) is Variable or type(left) is Function:
+                return Call(left, *params)
+            elif type(left) is PyLiteral:
+                return PyCall(eval(left.value), *params)
+        return left
+    def expression(self):
+        left = self.primary()
         if self.accept(Tokens.INFIX_CALL):
             operation = self.token.value[1:-1]
             right = self.expression()
-            return Call(operation, left, right)
+            return Call(Variable(operation), left, right)
         elif self.accept(Tokens.PYTHON_CODE):
             operation = eval(self.token.value[1:-1])
             right = self.expression()
@@ -306,7 +317,7 @@ while
   print(i)
 end
 
-print((fun(a) a `mul` 2 end)(3))
+print((fun (a) a `mul` 2 end)(8))
 """
 
 tree = Interpreter().parse(test)
