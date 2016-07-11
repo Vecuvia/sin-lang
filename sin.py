@@ -7,7 +7,7 @@ import re
 
 class Enum(tuple): __getattr__ = tuple.index
 
-Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN ASSIGN PYTHON_CODE IF THEN ELSE END INFIX_CALL FUNCTION".split())
+Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN ASSIGN PYTHON_CODE IF THEN ELSE END INFIX_CALL FUNCTION COMMA".split())
 
 class Token(object):
     __slots__ = ["kind", "value", "pos"]
@@ -21,6 +21,7 @@ Token_Patterns = [
     (r'\(', Tokens.LEFT_ROUND_PAREN),
     (r'\)', Tokens.RIGHT_ROUND_PAREN),
     (r'=', Tokens.ASSIGN),
+    (r',', Tokens.COMMA),
     (r'[+-]?[0-9]+', Tokens.NUMBER),
     (r'if', Tokens.IF),
     (r'then', Tokens.THEN),
@@ -162,6 +163,13 @@ class Interpreter(object):
             raise SyntaxError("{0}: expected {1}".format(self.token, Tokens[kind]))
     def atom(self):
         if self.accept(Tokens.IDENTIFIER):
+            identifier = self.token
+            if self.accept(Tokens.LEFT_ROUND_PAREN):
+                params = [self.expression()]
+                while self.accept(Tokens.COMMA):
+                    params.append(self.expression())
+                self.expect(Tokens.RIGHT_ROUND_PAREN)
+                return Call(identifier.value, *params)
             return Variable(self.token.value)
         elif self.accept(Tokens.NUMBER):
             return Literal(self.token.value)
@@ -180,8 +188,10 @@ class Interpreter(object):
             return Condition(condition, if_true, if_false)
         elif self.accept(Tokens.FUNCTION):
             self.expect(Tokens.LEFT_ROUND_PAREN)
-            params = []
-            while self.accept(Tokens.IDENTIFIER):
+            self.advance()
+            params = [self.token.value]
+            while self.accept(Tokens.COMMA):
+                self.advance()
                 params.append(self.token.value)
             self.expect(Tokens.RIGHT_ROUND_PAREN)
             code = self.block()
@@ -210,12 +220,12 @@ class Interpreter(object):
         return Block(expressions)
 
 test = """
-adder = fun (a b) 
+adder = fun (a, b) 
   a `add` b 
 end
 a = 2 `add` 2 {int.__add__} 3
 if a then 8 else 4 end
-2 `adder` 3
+adder(2, 3) `adder` 5
 """
 
 tree = Interpreter().parse(test)
