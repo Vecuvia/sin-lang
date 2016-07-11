@@ -7,7 +7,7 @@ import re
 
 class Enum(tuple): __getattr__ = tuple.index
 
-Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN ASSIGN PYTHON_CODE".split())
+Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN ASSIGN PYTHON_CODE IF THEN ELSE END".split())
 
 class Token(object):
     __slots__ = ["kind", "value", "pos"]
@@ -22,6 +22,10 @@ Token_Patterns = [
     (r'\)', Tokens.RIGHT_ROUND_PAREN),
     (r'=', Tokens.ASSIGN),
     (r'[+-]?[0-9]+', Tokens.NUMBER),
+    (r'if', Tokens.IF),
+    (r'then', Tokens.THEN),
+    (r'else', Tokens.ELSE),
+    (r'end', Tokens.END),
     (r'`[A-Za-z_][A-Za-z0-9_.]*`', Tokens.PYTHON_CODE),
     (r'[A-Za-z_][A-Za-z0-9_]*', Tokens.IDENTIFIER)
 ]
@@ -106,6 +110,19 @@ class Block(ASTNode):
             result = expression.execute(env)
         return result
 
+class Condition(ASTNode):
+    def __init__(self, condition, if_true, if_false=None):
+        self.condition, self.if_true, self.if_false = condition, if_true, if_false
+    def __str__(self):
+        return "(cond {0} {1} {2})".format(self.condition, self.if_true, self.if_false)
+    def execute(self, env=None):
+        if env is None: env = {}
+        print(self.condition.execute(env))
+        if self.condition.execute(env):
+            return self.if_true.execute(env)
+        elif self.if_false:
+            return self.if_false.execute(env)
+
 class Interpreter(object):
     def parse(self, text):
         self.text = text
@@ -132,6 +149,15 @@ class Interpreter(object):
             value = self.expression()
             self.expect(Tokens.RIGHT_ROUND_PAREN)
             return value
+        elif self.accept(Tokens.IF):
+            condition = self.expression()
+            self.expect(Tokens.THEN)
+            if_true = self.block()
+            if_false = None
+            if self.accept(Tokens.ELSE):
+                if_false = self.block()
+            self.expect(Tokens.END)
+            return Condition(condition, if_true, if_false)
     def expression(self):
         left = self.atom()
         if self.accept(Tokens.IDENTIFIER):
@@ -154,6 +180,6 @@ class Interpreter(object):
             expression = self.expression()
         return Block(expressions)
 
-tree = Interpreter().parse("((a = 2) add 2) `int.__add__` 3\n8")
+tree = Interpreter().parse("a = 2 add 2 `int.__add__` 3\n a = 0\nif a then 8 else 0 end")
 print(tree)
 print(tree.execute())
