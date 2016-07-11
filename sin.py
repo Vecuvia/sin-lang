@@ -43,3 +43,38 @@ def tokenize(text):
         else:
             position = match.end(0)
 
+class Interpreter(object):
+    def parse(self, text):
+        self.text = text
+        self.tokens = tokenize(text)
+        self.token, self.next_token = None, None
+        self.advance()
+        return self.expression()
+    def advance(self):
+        self.token, self.next_token = self.next_token, next(self.tokens, None)
+    def accept(self, kind):
+        if self.next_token is not None and self.next_token.kind == kind:
+            self.advance()
+            return True
+        return False
+    def expect(self, kind):
+        if not self.accept(kind):
+            raise SyntaxError("{0}: expected {1}".format(self.token, Tokens[kind]))
+    def atom(self):
+        if self.accept(Tokens.IDENTIFIER):
+            return "%s" % self.token.value
+        elif self.accept(Tokens.NUMBER):
+            return "%s" % self.token.value
+        elif self.accept(Tokens.LEFT_ROUND_PAREN):
+            value = self.expression()
+            self.expect(Tokens.RIGHT_ROUND_PAREN)
+            return value
+    def expression(self):
+        left = self.atom()
+        if self.accept(Tokens.IDENTIFIER):
+            operation = self.token.value
+            right = self.expression()
+            return "(%s %s %s)" % (left, operation, right)
+        return left
+
+print(Interpreter().parse("(1 add 2) add 3"))
