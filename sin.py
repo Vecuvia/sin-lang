@@ -94,13 +94,25 @@ class Assign(ASTNode):
         env[self.variable.name] = value
         return value
 
+class Block(ASTNode):
+    def __init__(self, expressions):
+        self.expressions = expressions
+    def __str__(self):
+        return "({0})".format(" ".join(map(str, self.expressions)))
+    def execute(self, env=None):
+        if env is None: env = {}
+        result = None
+        for expression in self.expressions:
+            result = expression.execute(env)
+        return result
+
 class Interpreter(object):
     def parse(self, text):
         self.text = text
         self.tokens = tokenize(text)
         self.token, self.next_token = None, None
         self.advance()
-        return self.expression()
+        return self.block()
     def advance(self):
         self.token, self.next_token = self.next_token, next(self.tokens, None)
     def accept(self, kind):
@@ -134,7 +146,14 @@ class Interpreter(object):
             right = self.expression()
             return Assign(left, right)
         return left
+    def block(self):
+        expressions = []
+        expression = self.expression()
+        while expression is not None:
+            expressions.append(expression)
+            expression = self.expression()
+        return Block(expressions)
 
-tree = Interpreter().parse("((a = 2) add 2) `int.__add__` 3")
+tree = Interpreter().parse("((a = 2) add 2) `int.__add__` 3\n8")
 print(tree)
 print(tree.execute())

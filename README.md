@@ -6,5 +6,6 @@ The Simple INtepreted language.
 
 ```bnf
 <atom> := <identifier> | <literal> | "(" <expression> ")"
-<expression> := <atom> ( <identifier> <expression> | "=" <expression> )
+<expression> := <atom> ( <identifier> | "=" | <py_code> ) <expression>
+<block> := <expression> <expression>*
 ```
