@@ -273,6 +273,16 @@ factorial = fun (n)
   end
 end
 
+is_odd = fun (n)
+  eq = fun (a, b) {int.__eq__}(a, b) end
+  mod = fun (a, b) {int.__mod__}(a, b) end
+  if (n `mod` 2) `eq` 0 then
+    0
+  else
+    1
+  end
+end
+
 a = 2 `add` 2 `sub` 3
 
 b = if a then 
@@ -287,9 +297,16 @@ print(a)
 print(factorial(6))
 
 i = 10
-while i = i `sub` 1 do
+while 
+  if is_odd(i) then 
+    i = i `sub` 1 
+  else 
+    i = i `sub` 3 
+  end `gt` 0 do
   print(i)
 end
+
+print((fun(a) a `mul` 2 end)(3))
 """
 
 tree = Interpreter().parse(test)
