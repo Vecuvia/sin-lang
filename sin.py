@@ -162,14 +162,17 @@ class Interpreter(object):
         if not self.accept(kind):
             raise SyntaxError("{0}: expected {1}".format(self.token, Tokens[kind]))
     def atom(self):
-        if self.accept(Tokens.IDENTIFIER):
+        if self.accept(Tokens.IDENTIFIER) or self.accept(Tokens.PYTHON_CODE):
             identifier = self.token
             if self.accept(Tokens.LEFT_ROUND_PAREN):
                 params = [self.expression()]
                 while self.accept(Tokens.COMMA):
                     params.append(self.expression())
                 self.expect(Tokens.RIGHT_ROUND_PAREN)
-                return Call(identifier.value, *params)
+                if identifier.kind == Tokens.IDENTIFIER:
+                    return Call(identifier.value, *params)
+                else:
+                    return PyCall(eval(identifier.value[1:-1]), *params)
             return Variable(self.token.value)
         elif self.accept(Tokens.NUMBER):
             return Literal(self.token.value)
@@ -220,14 +223,26 @@ class Interpreter(object):
         return Block(expressions)
 
 test = """
-adder = fun (a, b) 
-  a `add` b 
+add = fun (a, b) 
+  {int.__add__}(a, b)
 end
-a = 2 `add` 2 {int.__add__} 3
-if a then 8 else 4 end
-adder(2, 3) `adder` 5
+sub = fun (a, b)
+  {int.__sub__}(a, b)
+end
+print = fun (s)
+  {print}(s)
+end
+a = 2 `add` 2 `sub` 3
+b = if a then 
+  8 
+else 
+  4 
+end
+print(add(2, 3) `add` 5)
+print(b)
+print(a)
 """
 
 tree = Interpreter().parse(test)
-print(tree)
-print(tree.execute())
+#print(tree)
+tree.execute()
