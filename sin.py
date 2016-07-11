@@ -18,6 +18,7 @@ class Token(object):
 
 Token_Patterns = [
     (r'[ \n\t]+', None),
+    (r'#[^\n]*', None),
     (r'\(', Tokens.LEFT_ROUND_PAREN),
     (r'\)', Tokens.RIGHT_ROUND_PAREN),
     (r'=', Tokens.ASSIGN),
@@ -223,21 +224,26 @@ class Interpreter(object):
         return Block(expressions)
 
 test = """
-add = fun (a, b) 
+add = fun (a, b) # Adds two numbers together
   {int.__add__}(a, b)
 end
-sub = fun (a, b)
+
+sub = fun (a, b) # Subtracts b from a
   {int.__sub__}(a, b)
 end
-print = fun (s)
+
+print = fun (s) # Prints a string
   {print}(s)
 end
+
 a = 2 `add` 2 `sub` 3
+
 b = if a then 
   8 
 else 
   4 
 end
+
 print(add(2, 3) `add` 5)
 print(b)
 print(a)
