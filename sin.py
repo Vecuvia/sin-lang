@@ -209,11 +209,12 @@ class Interpreter(object):
             return Loop(condition, block)
         elif self.accept(Tokens.FUNCTION):
             self.expect(Tokens.LEFT_ROUND_PAREN)
-            self.advance()
-            params = [self.token.value]
-            while self.accept(Tokens.COMMA):
-                self.advance()
+            #self.advance()
+            params = []
+            while self.accept(Tokens.IDENTIFIER):
                 params.append(self.token.value)
+                if not self.accept(Tokens.COMMA):
+                    break
             self.expect(Tokens.RIGHT_ROUND_PAREN)
             code = self.block()
             self.expect(Tokens.END)
@@ -221,11 +222,12 @@ class Interpreter(object):
     def primary(self):
         left = self.atom()
         if self.accept(Tokens.LEFT_ROUND_PAREN):
-            #print("** accepted", self.text[self.token.pos-30:self.token.pos+30])
-            params = [self.expression()]
-            while self.accept(Tokens.COMMA):
-                params.append(self.expression())
-            #print(params)
+            params = []
+            param = self.expression()
+            while param is not None:
+                params.append(param)
+                self.accept(Tokens.COMMA)
+                param = self.expression()
             self.expect(Tokens.RIGHT_ROUND_PAREN)
             if type(left) in (Variable, Function, Condition):
                 return Call(left, *params)
@@ -265,6 +267,10 @@ end
 
 print = fun (s) # Prints a string
   {print}(s)
+end
+
+input = fun ()
+  {input}()
 end
 """
 
@@ -321,7 +327,7 @@ print((fun (a) a `mul` 2 end)(8))
 """
 
 test_2 = prelude + """
-a = 1
+a = input()
 print(mul(2, 12))
 print((if a then mul else add end)(2, 12))
 """
