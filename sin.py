@@ -50,18 +50,27 @@ class Variable(ASTNode):
         self.name = name
     def __str__(self):
         return "(var {0})".format(self.name)
+    def execute(self, env=None):
+        if env is None: env = {}
+        return env.get(self.name, None)
 
 class Literal(ASTNode):
     def __init__(self, value):
         self.value = value
     def __str__(self):
         return "(lit {0})".format(self.value)
+    def execute(self, env=None):
+        return eval(self.value)
 
 class Call(ASTNode):
     def __init__(self, name, *params):
         self.name, self.params = name, params
     def __str__(self):
         return "({0} {1})".format(self.name, " ".join(map(str, self.params)))
+    def execute(self, env=None):
+        if env is None: env = {}
+        if self.name == "add":
+            return sum(map(lambda i: i.execute(env), self.params))
 
 class Interpreter(object):
     def parse(self, text):
@@ -97,4 +106,6 @@ class Interpreter(object):
             return Call(operation, left, right)
         return left
 
-print(Interpreter().parse("(a add 2) add 3"))
+tree = Interpreter().parse("(a add 2) add 3")
+print(tree)
+print(tree.execute({"a": 1}))
