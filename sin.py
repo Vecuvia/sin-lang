@@ -7,7 +7,7 @@ import re
 
 class Enum(tuple): __getattr__ = tuple.index
 
-Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN ASSIGN PYTHON_CODE IF THEN ELSE END".split())
+Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN ASSIGN PYTHON_CODE IF THEN ELSE END INFIX_CALL FUNCTION".split())
 
 class Token(object):
     __slots__ = ["kind", "value", "pos"]
@@ -26,7 +26,9 @@ Token_Patterns = [
     (r'then', Tokens.THEN),
     (r'else', Tokens.ELSE),
     (r'end', Tokens.END),
-    (r'`[A-Za-z_][A-Za-z0-9_.]*`', Tokens.PYTHON_CODE),
+    (r'fun', Tokens.FUNCTION),
+    (r'`[A-Za-z_][A-Za-z0-9_]*`', Tokens.INFIX_CALL),
+    (r'{[A-Za-z_][A-Za-z0-9_.]*}', Tokens.PYTHON_CODE),
     (r'[A-Za-z_][A-Za-z0-9_]*', Tokens.IDENTIFIER)
 ]
 
@@ -75,8 +77,11 @@ class Call(ASTNode):
         return "({0} {1})".format(self.name, " ".join(map(str, self.params)))
     def execute(self, env=None):
         if env is None: env = {}
+        params = [param.execute(env) for param in self.params]
         if self.name == "add":
-            return sum(map(lambda i: i.execute(env), self.params))
+            return sum(params)
+        elif self.name in env:
+            return env[self.name].call(env, params)
 
 class PyCall(ASTNode):
     def __init__(self, function, *params):
@@ -102,7 +107,7 @@ class Block(ASTNode):
     def __init__(self, expressions):
         self.expressions = expressions
     def __str__(self):
-        return "({0})".format(" ".join(map(str, self.expressions)))
+        return "(begin {0})".format("\n".join(map(str, self.expressions)))
     def execute(self, env=None):
         if env is None: env = {}
         result = None
@@ -117,11 +122,26 @@ class Condition(ASTNode):
         return "(cond {0} {1} {2})".format(self.condition, self.if_true, self.if_false)
     def execute(self, env=None):
         if env is None: env = {}
-        print(self.condition.execute(env))
+        #print(self.condition.execute(env))
         if self.condition.execute(env):
             return self.if_true.execute(env)
         elif self.if_false:
             return self.if_false.execute(env)
+
+class Function(ASTNode):
+    def __init__(self, params, code):
+        self.params, self.code = params, code
+    def __str__(self):
+        return "(lambda ({0}) {1})".format(self.params, self.code)
+    def execute(self, env=None):
+        return self
+    def call(self, env, params):
+        local_env = {}
+        local_env.update(env)
+        #print("**", self.params, params)
+        for name, param in zip(self.params, params):
+            local_env[name] = param
+        return self.code.execute(local_env)
 
 class Interpreter(object):
     def parse(self, text):
@@ -158,10 +178,19 @@ class Interpreter(object):
                 if_false = self.block()
             self.expect(Tokens.END)
             return Condition(condition, if_true, if_false)
+        elif self.accept(Tokens.FUNCTION):
+            self.expect(Tokens.LEFT_ROUND_PAREN)
+            params = []
+            while self.accept(Tokens.IDENTIFIER):
+                params.append(self.token.value)
+            self.expect(Tokens.RIGHT_ROUND_PAREN)
+            code = self.block()
+            self.expect(Tokens.END)
+            return Function(params, code)
     def expression(self):
         left = self.atom()
-        if self.accept(Tokens.IDENTIFIER):
-            operation = self.token.value
+        if self.accept(Tokens.INFIX_CALL):
+            operation = self.token.value[1:-1]
             right = self.expression()
             return Call(operation, left, right)
         elif self.accept(Tokens.PYTHON_CODE):
@@ -180,6 +209,15 @@ class Interpreter(object):
             expression = self.expression()
         return Block(expressions)
 
-tree = Interpreter().parse("a = 2 add 2 `int.__add__` 3\n a = 0\nif a then 8 else 0 end")
+test = """
+adder = fun (a b) 
+  a `add` b 
+end
+a = 2 `add` 2 {int.__add__} 3
+if a then 8 else 4 end
+2 `adder` 3
+"""
+
+tree = Interpreter().parse(test)
 print(tree)
 print(tree.execute())
