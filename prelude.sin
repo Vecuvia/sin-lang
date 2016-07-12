@@ -1,16 +1,24 @@
-add = fun (a, b) # Adds two numbers together
+add = fun (a, b)
   {int.__add__}(a, b)
 end
 
-sub = fun (a, b) # Subtracts b from a
+sub = fun (a, b)
   {int.__sub__}(a, b)
 end
 
-mul = fun (a, b) # Multiplies two numbers together
+mul = fun (a, b)
   {int.__mul__}(a, b)
 end
 
-print = fun (s) # Prints a string
+div = fun (a, b)
+  {int.__floordiv__}(a, b)
+end
+
+mod = fun (a, b)
+  {int.__mod__}(a, b)
+end
+
+print = fun (s)
   {print}(s)
 end
 
@@ -24,6 +32,14 @@ end
 
 eq = fun (a, b)
   {lambda a, b: a == b}(a, b)
+end
+
+gt = fun (a, b)
+  {lambda a, b: a > b}(a, b)
+end
+
+lt = fun (a, b)
+  {lambda a, b: a < b}(a, b)
 end
 
 assert = fun (e, v)

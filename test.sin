@@ -1,0 +1,76 @@
+include "prelude.sin"
+
+# Testing prelude
+
+assert(1 `add` 1, 2)
+assert(1 `sub` 1, 0)
+assert(1 `mul` 1, 1)
+assert(1 `div` 1, 1)
+assert(1 `eq` 1, 1)
+assert(1 `eq` 2, 0)
+
+# Testing is_odd
+
+is_odd = fun (n)
+  n `mod` 2
+end
+
+assert(is_odd(2), 0)
+assert(is_odd(3), 1)
+
+# Testing factorial
+
+factorial = fun (n)
+  if n `gt` 1 then
+    n `mul` factorial(n `sub` 1)
+  else
+    1
+  end
+end
+
+assert(factorial(5), 120)
+assert(factorial(6), 720)
+
+# Testing fibonacci
+
+fibonacci = fun (n)
+  if n `eq` 0 then
+    1
+  else
+    if n `eq` 1 then
+      1
+    else
+      fibonacci(n `sub` 1) `add` fibonacci(n `sub` 2)
+    end
+  end
+end
+
+assert(fibonacci(0), 1)
+assert(fibonacci(1), 1)
+assert(fibonacci(2), 2)
+assert(fibonacci(3), 3)
+assert(fibonacci(4), 5)
+assert(fibonacci(5), 8)
+
+# Testing environments
+
+closure = fun ()
+  a = 3
+  assert(a, 3)
+end
+
+closure()
+assert(a, None) #TODO: this isn't actually parsed
+
+a = 0
+if 1 then
+  # As a is defined outside the block, it is modified within the closure
+  a = 33
+  b = 22
+  assert(b, 22)
+end
+
+assert(a, 33)
+assert(b, None)
+
+print("All tests passed.")

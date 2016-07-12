@@ -58,7 +58,7 @@ def tokenize(text):
             position = match.end(0)
 
 class Environment(object):
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         self.parent = parent
         self.data = {}
     def get(self, key, default):
@@ -288,109 +288,10 @@ class Interpreter(object):
             expression = self.expression()
         return Block(expressions)
 
-
-test_1 = """
-include "prelude.sin"
-
-gt = fun (a, b)
-  {int.__gt__}(a, b)
-end
-
-assert(3 `gt` 5, 1)
-print(3 `gt` 5)
-print(5 `gt` 3)
-
-factorial = fun (n)
-  if n `gt` 1 then
-    n `mul` factorial(n `sub` 1)
-  else
-    1
-  end
-end
-
-is_odd = fun (n)
-  eq = fun (a, b) {int.__eq__}(a, b) end
-  mod = fun (a, b) {int.__mod__}(a, b) end
-  if (n `mod` 2) `eq` 0 then
-    0
-  else
-    1
-  end
-end
-
-a = 2 `add` 2 `sub` 3
-
-b = if a then 
-  8 
-else 
-  4 
-end
-
-print(add(2, 3) `add` 5)
-print(b)
-print(a)
-print(factorial(10))
-
-i = 10
-while 
-  if is_odd(i) then 
-    i = i `sub` 1 
-  else 
-    i = i `sub` 3 
-  end `gt` 0 do
-  print(i)
-end
-
-print((fun (a) a `mul` 2 end)(8))
-"""
-
-test_2 = """
-include "prelude.sin"
-
-a = input()
-print(assert(mul(2, 12), 23))
-print((if a then mul else add end)(2, 12))
-
-eq = fun (a, b) {int.__eq__}(a, b) end
-
-fibonacci = fun (n)
-  if n `eq` 0 then
-    1
-  else
-    if n `eq` 1 then
-      1
-    else
-      fibonacci(n `sub` 1) `add` fibonacci(n `sub` 2)
-    end
-  end
-end
-
-i = 10
-while i = i `sub` 1 do
-  print(fibonacci(i))
-end
-print("i " `concat` i)
-
-test = fun ()
-  c = 33
-  print("within 'test', c is " `concat` c)
-end
-
-test()
-
-print("c is " `concat` c)
-
-c = 0
-if a then 
-  c = 33 
-  print(c)
-end
-
-print(c)
-"""
-
-test_3 =  "include \"prelude.sin\" print(assert(mul(2, 12), 23))"
-
-tree = Interpreter().parse(test_2)
-#print(tree)
-tree.execute(Environment(None))
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) > 1:
+        with open(sys.argv[1], "r") as file:
+            source = file.read()
+        tree = Interpreter().parse(source)
+        tree.execute(Environment())
