@@ -3,6 +3,7 @@
 - [ ] Syntax for precedence and symbolic operators
 - [x] Add while loops
 - [x] Make anonymous functions usable
-- [ ] Update BNF
+- [x] Update BNF
 - [ ] Rewrite everything, starting from sane specs
 - [x] Make closures work
+      Are these actually closures? I think I used the wrong word here.

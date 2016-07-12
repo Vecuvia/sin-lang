@@ -6,10 +6,17 @@ The Simple INtepreted language.
 
 ```bnf
 <block> := <expression> <expression>*
-<expression> := <atom> [ ( <infix> | "=" | <py_code> ) <expression> ]
-              | "if" <expression> "then" <block> [ "else" <block> ] "end"
+<expression> := <primary> [ ( <infix> | "=" ) <expression> ]
+<primary> := <atom> [ "(" <expression_list ")" ]
+<atom> := <identifier> 
+        | <literal> 
+        | <python_code>
+        | "(" <expression> ")"
+        | "if" <expression> "then" <block> [ "else" <block> ] "end"
+        | "while" <expression> "do" <block> "end"
+        | "fun" "(" <identifier_list> ")" <block> "end"
+<python_code> := "{" <code> "}"
 <infix> := "`" <identifier> "`"
-<atom> := <identifier> | <literal> | "(" <expression> ")" | <function_call>
-<function_call> := <identifier> "(" <expression_list> ")"
 <expression_list> := <expression> [ "," <expression_list> ]
+<identifier_list> := <identifier> [ "," <identifier_list> ]
 ```
