@@ -1,3 +1,5 @@
+# Arithmetic
+
 add = fun (a, b)
   {int.__add__}(a, b)
 end
@@ -18,6 +20,22 @@ mod = fun (a, b)
   {int.__mod__}(a, b)
 end
 
+# Boolean
+
+and = fun (a, b)
+  {lambda a, b: a and b}(a, b)
+end
+
+or = fun (a, b)
+  {lambda a, b: a or b}(a, b)
+end
+
+not = fun (a)
+  {lambda a: not a}(a)
+end
+
+# Input, output
+
 print = fun (s)
   {print}(s)
 end
@@ -26,9 +44,13 @@ input = fun ()
   {input}()
 end
 
+# String manipulation
+
 concat = fun (a, b)
   {str.__add__}({str}(a), {str}(b))
 end
+
+# Comparisons
 
 eq = fun (a, b)
   {lambda a, b: a == b}(a, b)
