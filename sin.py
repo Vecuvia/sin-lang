@@ -81,7 +81,6 @@ class Variable(ASTNode):
     def __str__(self):
         return "(var {0})".format(self.name)
     def execute(self, env):
-        #env = Environment(parent=env)
         return env.get(self.name, None)
 
 class Literal(ASTNode):
@@ -129,7 +128,6 @@ class Assign(ASTNode):
     def __str__(self):
         return "(! {0} {1})".format(self.variable, self.expression)
     def execute(self, env):
-        #env = Environment(parent=env)
         value = self.expression.execute(env)
         env[self.variable.name] = value
         return value
