@@ -9,6 +9,7 @@ The Simple INtepreted language.
 <expression> := <primary> [ ( <infix> | "=" ) <expression> ]
 <primary> := <atom> [ "(" <expression_list ")" ]
 <atom> := <identifier> 
+        | "[" <expression_list> "]"
         | <literal> 
         | <python_code>
         | "(" <expression> ")"

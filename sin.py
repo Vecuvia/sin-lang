@@ -7,7 +7,7 @@ import re
 
 class Enum(tuple): __getattr__ = tuple.index
 
-Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN ASSIGN PYTHON_CODE IF THEN ELSE END INFIX_CALL FUNCTION COMMA WHILE DO STRING INCLUDE".split())
+Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN ASSIGN PYTHON_CODE IF THEN ELSE END INFIX_CALL FUNCTION COMMA WHILE DO STRING INCLUDE LEFT_SQUARE_PAREN RIGHT_SQUARE_PAREN".split())
 
 class Token(object):
     __slots__ = ["kind", "value", "pos"]
@@ -21,6 +21,8 @@ Token_Patterns = [
     (r'#[^\n]*', None),
     (r'\(', Tokens.LEFT_ROUND_PAREN),
     (r'\)', Tokens.RIGHT_ROUND_PAREN),
+    (r'\[', Tokens.LEFT_SQUARE_PAREN),
+    (r'\]', Tokens.RIGHT_SQUARE_PAREN),
     (r'=', Tokens.ASSIGN),
     (r',', Tokens.COMMA),
     (r'[+-]?[0-9]+', Tokens.NUMBER),
@@ -97,7 +99,17 @@ class Literal(ASTNode):
     def __str__(self):
         return "(lit {0})".format(self.value)
     def execute(self, env):
-        return eval(self.value)
+        if type(self.value) is list:
+            return [item.execute(env) for item in self.value]
+        return self.value
+
+class ListAccess(ASTNode):
+    def __init__(self, value, index):
+        self.value, self.index = value, index
+    def __str__(self):
+        return "({0} @ {1})".format(self.value, self.index)
+    def execute(self, env):
+        return self.value.execute(env)[self.index.execute(env)]
 
 class PyLiteral(ASTNode):
     def __init__(self, value):
@@ -223,11 +235,22 @@ class Interpreter(object):
         elif self.accept(Tokens.PYTHON_CODE):
             return PyLiteral(self.token.value[1:-1])
         elif self.accept(Tokens.NUMBER) or self.accept(Tokens.STRING):
-            return Literal(self.token.value)
+            return Literal(eval(self.token.value))
         elif self.accept(Tokens.LEFT_ROUND_PAREN):
             value = self.expression()
             self.expect(Tokens.RIGHT_ROUND_PAREN)
             return value
+        elif self.accept(Tokens.LEFT_SQUARE_PAREN):
+            values = []
+            value = self.expression()
+            while value is not None:
+                values.append(value)
+                if self.accept(Tokens.COMMA):
+                    value = self.expression()
+                else:
+                    value = None
+            self.expect(Tokens.RIGHT_SQUARE_PAREN)
+            return Literal(values)
         elif self.accept(Tokens.IF):
             condition = self.expression()
             self.expect(Tokens.THEN)
@@ -269,6 +292,10 @@ class Interpreter(object):
                 return Call(left, *params)
             elif type(left) is PyLiteral:
                 return PyCall(eval(left.value), *params)
+        elif self.accept(Tokens.LEFT_SQUARE_PAREN):
+            index = self.expression()
+            self.expect(Tokens.RIGHT_SQUARE_PAREN)
+            return ListAccess(left, index)
         return left
     def expression(self):
         left = self.primary()

@@ -42,6 +42,10 @@ lt = fun (a, b)
   {lambda a, b: a < b}(a, b)
 end
 
+length = fun (l)
+  {len}(l)
+end
+
 assert = fun (e, v)
   if e `eq` v then
     v

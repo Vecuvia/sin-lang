@@ -73,4 +73,12 @@ end
 assert(a, 33)
 assert(b, None)
 
+# Testing lists
+
+a = [1, 2, 3]
+assert(a[0], 1)
+assert(a[1], 2)
+assert(a[2], 3)
+assert(length(a), 3)
+
 print("All tests passed.")
