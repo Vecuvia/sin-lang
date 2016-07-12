@@ -27,11 +27,11 @@ n = 0
 while n `lt` 4000000 do
   n = fibonacci(i)
   i = i `add` 1
-  sum = sum `add` if is_even(n) then n else 0 end
+  #sum = sum `add` if is_even(n) then n else 0 end
   #Workaround for the (bugged) following
-  #if is_even(n) then
-  #  sum = sum `add` n
-  #end
+  if is_even(n) then
+    sum = sum `add` n
+  end
 end
 
 print(sum)

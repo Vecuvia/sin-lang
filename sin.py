@@ -78,10 +78,14 @@ class Environment(object):
             return True
         return False
     def __setitem__(self, key, value):
+        print(self)
+        input((key, value))
         if self.parent and key in self.parent:
             self.parent[key] = value
         else:
             self.data[key] = value
+    def __str__(self):
+        return str(self.parent) + "->" + str(self.data)
 
 class ASTNode(object): pass
 
@@ -159,7 +163,6 @@ class Block(ASTNode):
     def __str__(self):
         return "(begin {0})".format("\n".join(map(str, self.expressions)))
     def execute(self, env):
-        #env = Environment(parent=env)
         result = None
         for expression in self.expressions:
             result = expression.execute(env)
@@ -187,7 +190,7 @@ class Loop(ASTNode):
         result = None
         while self.condition.execute(env):
             result = self.block.execute(env)
-        result = None
+        return result
 
 class Function(ASTNode):
     def __init__(self, params, code):
