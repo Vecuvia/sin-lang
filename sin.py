@@ -76,16 +76,12 @@ class Environment(object):
             parent = parent.parent
         else:
             return self.data.get(key, None)
-        #if key in self.data or self.parent is None:
-        #    return self.data.get(key, None)
-        #elif self.parent:
-        #    return self.parent[key]
     def __contains__(self, key):
         if key in self.data:
             return True
         return False
     def __setitem__(self, key, value):
-        #print(key, value, self.data)
+        # Fix keys in immediate scope being shadowed by parents
         if key in self.data:
             self.data[key] = value
             return
