@@ -64,6 +64,16 @@ append = fun (l, i)
   l
 end
 
+range = fun (a, b)
+  l = []
+  i = a
+  while i `lt` b do
+    l `append` i
+    i = i `add` 1
+  end
+  l
+end
+
 map = fun (f, l)
   nl = []
   i = 0
@@ -82,4 +92,16 @@ reduce = fun (f, l)
     i = i `add` 1
   end
   acc
+end
+
+filter = fun (f, l)
+  nl = []
+  i = 0
+  while i `lt` length(l) do
+    if f(l[i]) then
+      nl `append` l[i]
+    end
+    i = i `add` 1
+  end
+  nl
 end
