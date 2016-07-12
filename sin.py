@@ -7,7 +7,7 @@ import re
 
 class Enum(tuple): __getattr__ = tuple.index
 
-Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN ASSIGN PYTHON_CODE IF THEN ELSE END INFIX_CALL FUNCTION COMMA WHILE DO".split())
+Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN ASSIGN PYTHON_CODE IF THEN ELSE END INFIX_CALL FUNCTION COMMA WHILE DO STRING".split())
 
 class Token(object):
     __slots__ = ["kind", "value", "pos"]
@@ -31,8 +31,9 @@ Token_Patterns = [
     (r'fun', Tokens.FUNCTION),
     (r'while', Tokens.WHILE),
     (r'do', Tokens.DO),
+    (r'"[^"\n]*"', Tokens.STRING),
     (r'`[A-Za-z_][A-Za-z0-9_]*`', Tokens.INFIX_CALL),
-    (r'{[A-Za-z_][A-Za-z0-9_.]*}', Tokens.PYTHON_CODE),
+    (r'{[^\}]*}', Tokens.PYTHON_CODE),
     (r'[A-Za-z_][A-Za-z0-9_]*', Tokens.IDENTIFIER)
 ]
 
@@ -92,7 +93,10 @@ class Call(ASTNode):
         if env is None: env = {}
         function = self.name.execute(env)
         params = [param.execute(env) for param in self.params]
-        return function.call(env, params)
+        try:
+            return function.call(env, params)
+        except AttributeError:
+            raise RuntimeError("{0} is not a function".format(self.name))
 
 class PyCall(ASTNode):
     def __init__(self, function, *params):
@@ -189,7 +193,7 @@ class Interpreter(object):
             return Variable(self.token.value)
         elif self.accept(Tokens.PYTHON_CODE):
             return PyLiteral(self.token.value[1:-1])
-        elif self.accept(Tokens.NUMBER):
+        elif self.accept(Tokens.NUMBER) or self.accept(Tokens.STRING):
             return Literal(self.token.value)
         elif self.accept(Tokens.LEFT_ROUND_PAREN):
             value = self.expression()
@@ -275,6 +279,23 @@ end
 input = fun ()
   {input}()
 end
+
+concat = fun (a, b)
+  {str.__add__}({str}(a), {str}(b))
+end
+
+eq = fun (a, b)
+  {lambda a, b: a == b}(a, b)
+end
+
+assert = fun (e, v)
+  if e `eq` v then
+    v
+  else
+    print("Assertion Error " `concat` e `concat` " != " `concat` v)
+    v
+  end
+end
 """
 
 test_1 = prelude + """
@@ -282,6 +303,7 @@ gt = fun (a, b)
   {int.__gt__}(a, b)
 end
 
+assert(3 `gt` 5, 1)
 print(3 `gt` 5)
 print(5 `gt` 3)
 
@@ -331,7 +353,7 @@ print((fun (a) a `mul` 2 end)(8))
 
 test_2 = prelude + """
 a = input()
-print(mul(2, 12))
+print(assert(mul(2, 12), 23))
 print((if a then mul else add end)(2, 12))
 
 eq = fun (a, b) {int.__eq__}(a, b) end
@@ -353,6 +375,8 @@ while i = i `sub` 1 do
   print(fibonacci(i))
 end
 """
+
+test_2 = prelude + "print(assert(mul(2, 12), 23))"
 
 tree = Interpreter().parse(test_2)
 #print(tree)
