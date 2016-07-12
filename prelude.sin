@@ -1,0 +1,36 @@
+add = fun (a, b) # Adds two numbers together
+  {int.__add__}(a, b)
+end
+
+sub = fun (a, b) # Subtracts b from a
+  {int.__sub__}(a, b)
+end
+
+mul = fun (a, b) # Multiplies two numbers together
+  {int.__mul__}(a, b)
+end
+
+print = fun (s) # Prints a string
+  {print}(s)
+end
+
+input = fun ()
+  {input}()
+end
+
+concat = fun (a, b)
+  {str.__add__}({str}(a), {str}(b))
+end
+
+eq = fun (a, b)
+  {lambda a, b: a == b}(a, b)
+end
+
+assert = fun (e, v)
+  if e `eq` v then
+    v
+  else
+    print("Assertion Error " `concat` e `concat` " != " `concat` v)
+    v
+  end
+end

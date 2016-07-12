@@ -7,7 +7,7 @@ import re
 
 class Enum(tuple): __getattr__ = tuple.index
 
-Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN ASSIGN PYTHON_CODE IF THEN ELSE END INFIX_CALL FUNCTION COMMA WHILE DO STRING".split())
+Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN ASSIGN PYTHON_CODE IF THEN ELSE END INFIX_CALL FUNCTION COMMA WHILE DO STRING INCLUDE".split())
 
 class Token(object):
     __slots__ = ["kind", "value", "pos"]
@@ -31,6 +31,7 @@ Token_Patterns = [
     (r'fun', Tokens.FUNCTION),
     (r'while', Tokens.WHILE),
     (r'do', Tokens.DO),
+    (r'include', Tokens.INCLUDE),
     (r'"[^"\n]*"', Tokens.STRING),
     (r'`[A-Za-z_][A-Za-z0-9_]*`', Tokens.INFIX_CALL),
     (r'{[^\}]*}', Tokens.PYTHON_CODE),
@@ -66,12 +67,15 @@ class Environment(object):
             return default
         return value
     def __getitem__(self, key):
-        if key in self.data:
+        if key in self.data or self.parent is None:
             return self.data[key]
         elif self.parent:
             return self.parent[key]
     def __setitem__(self, key, value):
-        self.data[key] = value
+        if key in self.data or self.parent is None:
+            self.data[key] = value
+        elif self.parent:
+            self.parent[key] = value
 
 class ASTNode(object): pass
 
@@ -138,7 +142,7 @@ class Block(ASTNode):
     def __str__(self):
         return "(begin {0})".format("\n".join(map(str, self.expressions)))
     def execute(self, env):
-        env = Environment(parent=env)
+        #env = Environment(parent=env)
         result = None
         for expression in self.expressions:
             result = expression.execute(env)
@@ -199,7 +203,14 @@ class Interpreter(object):
         if not self.accept(kind):
             raise SyntaxError("{0}: expected {1}".format(self.token, Tokens[kind]))
     def atom(self):
-        if self.accept(Tokens.IDENTIFIER):
+        if self.accept(Tokens.INCLUDE):
+            self.expect(Tokens.STRING)
+            filename = self.token.value[1:-1]
+            with open(filename, "r") as included_file:
+                source = included_file.read()
+            tree = Interpreter().parse(source)
+            return tree
+        elif self.accept(Tokens.IDENTIFIER):
             identifier = self.token
             return Variable(self.token.value)
         elif self.accept(Tokens.PYTHON_CODE):
@@ -362,7 +373,9 @@ end
 print((fun (a) a `mul` 2 end)(8))
 """
 
-test_2 = prelude + """
+test_2 = """
+include "prelude.sin"
+
 a = input()
 print(assert(mul(2, 12), 23))
 print((if a then mul else add end)(2, 12))
@@ -385,9 +398,18 @@ i = 10
 while i = i `sub` 1 do
   print(fibonacci(i))
 end
+
+test = fun ()
+  c = 33
+end
+
+c = 0
+if a then c = 33 print(c) end
+
+print(c)
 """
 
-test_2 = prelude + "print(assert(mul(2, 12), 23))"
+test_3 =  "print(assert(mul(2, 12), 23))"
 
 tree = Interpreter().parse(test_2)
 #print(tree)
