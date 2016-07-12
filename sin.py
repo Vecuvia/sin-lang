@@ -56,6 +56,22 @@ def tokenize(text):
         else:
             position = match.end(0)
 
+class Environment(object):
+    def __init__(self, parent):
+        self.parent = parent
+        self.data = {}
+    def get(self, key, default):
+        value = self[key]
+        if value is None:
+            return default
+        return value
+    def __getitem__(self, key):
+        if key in self.data:
+            return self.data[key]
+        elif self.parent:
+            return self.parent[key]
+    def __setitem__(self, key, value):
+        self.data[key] = value
 
 class ASTNode(object): pass
 
@@ -64,8 +80,8 @@ class Variable(ASTNode):
         self.name = name
     def __str__(self):
         return "(var {0})".format(self.name)
-    def execute(self, env=None):
-        if env is None: env = {}
+    def execute(self, env):
+        #env = Environment(parent=env)
         return env.get(self.name, None)
 
 class Literal(ASTNode):
@@ -73,7 +89,7 @@ class Literal(ASTNode):
         self.value = value
     def __str__(self):
         return "(lit {0})".format(self.value)
-    def execute(self, env=None):
+    def execute(self, env):
         return eval(self.value)
 
 class PyLiteral(ASTNode):
@@ -81,7 +97,7 @@ class PyLiteral(ASTNode):
         self.value = value
     def __str__(self):
         return "(py {0})".format(self.value)
-    def execute(self, env=None):
+    def execute(self, env):
         return eval(self.value)
 
 class Call(ASTNode):
@@ -89,8 +105,8 @@ class Call(ASTNode):
         self.name, self.params = name, params
     def __str__(self):
         return "(call {0} {1})".format(self.name, " ".join(map(str, self.params)))
-    def execute(self, env=None):
-        if env is None: env = {}
+    def execute(self, env):
+        env = Environment(parent=env)
         function = self.name.execute(env)
         params = [param.execute(env) for param in self.params]
         try:
@@ -103,8 +119,8 @@ class PyCall(ASTNode):
         self.function, self.params = function, params
     def __str__(self):
         return "({0} {1})".format(self.function.__name__, " ".join(map(str, self.params)))
-    def execute(self, env=None):
-        if env is None: env = {}
+    def execute(self, env):
+        env = Environment(parent=env)
         return self.function(*[param.execute(env) for param in self.params])
 
 class Assign(ASTNode):
@@ -112,8 +128,8 @@ class Assign(ASTNode):
         self.variable, self.expression = variable, expression
     def __str__(self):
         return "(! {0} {1})".format(self.variable, self.expression)
-    def execute(self, env=None):
-        if env is None: env = {}
+    def execute(self, env):
+        #env = Environment(parent=env)
         value = self.expression.execute(env)
         env[self.variable.name] = value
         return value
@@ -123,8 +139,8 @@ class Block(ASTNode):
         self.expressions = expressions
     def __str__(self):
         return "(begin {0})".format("\n".join(map(str, self.expressions)))
-    def execute(self, env=None):
-        if env is None: env = {}
+    def execute(self, env):
+        env = Environment(parent=env)
         result = None
         for expression in self.expressions:
             result = expression.execute(env)
@@ -135,9 +151,8 @@ class Condition(ASTNode):
         self.condition, self.if_true, self.if_false = condition, if_true, if_false
     def __str__(self):
         return "(cond {0} {1} {2})".format(self.condition, self.if_true, self.if_false)
-    def execute(self, env=None):
-        if env is None: env = {}
-        #print(self.condition.execute(env))
+    def execute(self, env):
+        env = Environment(parent=env)
         if self.condition.execute(env):
             return self.if_true.execute(env)
         elif self.if_false:
@@ -148,8 +163,8 @@ class Loop(ASTNode):
         self.condition, self.block = condition, block
     def __str__(self):
         return "(loop {0} {1})".format(self.condition, self.block)
-    def execute(self, env=None):
-        if env is None: env = {}
+    def execute(self, env):
+        env = Environment(parent=env)
         result = None
         while self.condition.execute(env):
             result = self.block.execute(env)
@@ -163,12 +178,10 @@ class Function(ASTNode):
     def execute(self, env=None):
         return self
     def call(self, env, params):
-        local_env = {}
-        local_env.update(env)
-        #print("**", self.params, params)
+        env = Environment(parent=env)
         for name, param in zip(self.params, params):
-            local_env[name] = param
-        return self.code.execute(local_env)
+            env[name] = param
+        return self.code.execute(env)
 
 class Interpreter(object):
     def parse(self, text):
@@ -380,4 +393,4 @@ test_2 = prelude + "print(assert(mul(2, 12), 23))"
 
 tree = Interpreter().parse(test_2)
 #print(tree)
-tree.execute()
+tree.execute(Environment(None))

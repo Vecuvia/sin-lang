@@ -5,4 +5,4 @@
 - [x] Make anonymous functions usable
 - [ ] Update BNF
 - [ ] Rewrite everything, starting from sane specs
-- [ ] Make closures work
+- [x] Make closures work
