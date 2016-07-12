@@ -20,6 +20,14 @@ mod = fun (a, b)
   {int.__mod__}(a, b)
 end
 
+max = fun (a, b)
+  {max}(a, b)
+end
+
+min = fun (a, b)
+  {min}(a, b)
+end
+
 # Boolean
 
 and = fun (a, b)
