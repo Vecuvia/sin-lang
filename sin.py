@@ -311,7 +311,7 @@ end
 print(add(2, 3) `add` 5)
 print(b)
 print(a)
-print(factorial(6))
+print(factorial(10))
 
 i = 10
 while 
@@ -330,6 +330,25 @@ test_2 = prelude + """
 a = input()
 print(mul(2, 12))
 print((if a then mul else add end)(2, 12))
+
+eq = fun (a, b) {int.__eq__}(a, b) end
+
+fibonacci = fun (n)
+  if n `eq` 0 then
+    1
+  else
+    if n `eq` 1 then
+      1
+    else
+      fibonacci(n `sub` 1) `add` fibonacci(n `sub` 2)
+    end
+  end
+end
+
+i = 10
+while i = i `sub` 1 do
+  print(fibonacci(i))
+end
 """
 
 tree = Interpreter().parse(test_2)
