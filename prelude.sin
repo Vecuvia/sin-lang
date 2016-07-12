@@ -42,9 +42,7 @@ lt = fun (a, b)
   {lambda a, b: a < b}(a, b)
 end
 
-length = fun (l)
-  {len}(l)
-end
+# Testing
 
 assert = fun (e, v)
   if e `eq` v then
@@ -53,4 +51,35 @@ assert = fun (e, v)
     print("Assertion Error " `concat` e `concat` " != " `concat` v)
     v
   end
+end
+
+# Lists
+
+length = fun (l)
+  {len}(l)
+end
+
+append = fun (l, i)
+  {lambda l, i: l.append(i)}(l, i)
+  l
+end
+
+map = fun (f, l)
+  nl = []
+  i = 0
+  while i `lt` length(l) do
+    nl `append` f(l[i])
+    i = i `add` 1
+  end
+  nl
+end
+
+reduce = fun (f, l)
+  acc = l[0]
+  i = 1
+  while i `lt` length(l) do
+    acc = acc `f` l[i]
+    i = i `add` 1
+  end
+  acc
 end

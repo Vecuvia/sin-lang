@@ -76,9 +76,24 @@ assert(b, None)
 # Testing lists
 
 a = [1, 2, 3]
+a `append` 4
 assert(a[0], 1)
 assert(a[1], 2)
 assert(a[2], 3)
-assert(length(a), 3)
+assert(a[3], 4)
+assert(length(a), 4)
+
+square = fun (a)
+  a `mul` a
+end
+
+a = square `map` a
+assert(a[0], 1)
+assert(a[1], 4)
+assert(a[2], 9)
+assert(a[3], 16)
+
+a = add `reduce` a
+assert(a, 30)
 
 print("All tests passed.")
