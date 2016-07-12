@@ -69,19 +69,32 @@ class Environment(object):
             return default
         return value
     def __getitem__(self, key):
-        if key in self.data or self.parent is None:
+        parent = self.parent
+        while parent:
+            if key in parent.data:
+                return parent.data[key]
+            parent = parent.parent
+        else:
             return self.data.get(key, None)
-        elif self.parent:
-            return self.parent[key]
+        #if key in self.data or self.parent is None:
+        #    return self.data.get(key, None)
+        #elif self.parent:
+        #    return self.parent[key]
     def __contains__(self, key):
         if key in self.data:
             return True
         return False
     def __setitem__(self, key, value):
-        print(self)
-        input((key, value))
-        if self.parent and key in self.parent:
-            self.parent[key] = value
+        #print(key, value, self.data)
+        if key in self.data:
+            self.data[key] = value
+            return
+        parent = self.parent
+        while parent:
+            if key in parent.data:
+                parent[key] = value
+                break
+            parent = parent.parent
         else:
             self.data[key] = value
     def __str__(self):
@@ -153,7 +166,6 @@ class Assign(ASTNode):
         return "(! {0} {1})".format(self.variable, self.expression)
     def execute(self, env):
         value = self.expression.execute(env)
-        #print("*ASSIGN", self.variable, value)
         env[self.variable.name] = value
         return value
 
