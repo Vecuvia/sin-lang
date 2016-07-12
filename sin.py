@@ -68,14 +68,18 @@ class Environment(object):
         return value
     def __getitem__(self, key):
         if key in self.data or self.parent is None:
-            return self.data[key]
+            return self.data.get(key, None)
         elif self.parent:
             return self.parent[key]
+    def __contains__(self, key):
+        if key in self.data:
+            return True
+        return False
     def __setitem__(self, key, value):
-        if key in self.data or self.parent is None:
-            self.data[key] = value
-        elif self.parent:
+        if self.parent and key in self.parent:
             self.parent[key] = value
+        else:
+            self.data[key] = value
 
 class ASTNode(object): pass
 
@@ -133,6 +137,7 @@ class Assign(ASTNode):
         return "(! {0} {1})".format(self.variable, self.expression)
     def execute(self, env):
         value = self.expression.execute(env)
+        #print("*ASSIGN", self.variable, value)
         env[self.variable.name] = value
         return value
 
@@ -180,9 +185,11 @@ class Function(ASTNode):
     def execute(self, env=None):
         return self
     def call(self, env, params):
+        #print("**", self)
         env = Environment(parent=env)
         for name, param in zip(self.params, params):
-            env[name] = param
+            #print(name, param)
+            env.data[name] = param
         return self.code.execute(env)
 
 class Interpreter(object):
@@ -281,46 +288,10 @@ class Interpreter(object):
             expression = self.expression()
         return Block(expressions)
 
-prelude = """
-add = fun (a, b) # Adds two numbers together
-  {int.__add__}(a, b)
-end
 
-sub = fun (a, b) # Subtracts b from a
-  {int.__sub__}(a, b)
-end
+test_1 = """
+include "prelude.sin"
 
-mul = fun (a, b) # Multiplies two numbers together
-  {int.__mul__}(a, b)
-end
-
-print = fun (s) # Prints a string
-  {print}(s)
-end
-
-input = fun ()
-  {input}()
-end
-
-concat = fun (a, b)
-  {str.__add__}({str}(a), {str}(b))
-end
-
-eq = fun (a, b)
-  {lambda a, b: a == b}(a, b)
-end
-
-assert = fun (e, v)
-  if e `eq` v then
-    v
-  else
-    print("Assertion Error " `concat` e `concat` " != " `concat` v)
-    v
-  end
-end
-"""
-
-test_1 = prelude + """
 gt = fun (a, b)
   {int.__gt__}(a, b)
 end
@@ -398,18 +369,27 @@ i = 10
 while i = i `sub` 1 do
   print(fibonacci(i))
 end
+print("i " `concat` i)
 
 test = fun ()
   c = 33
+  print("within 'test', c is " `concat` c)
 end
 
+test()
+
+print("c is " `concat` c)
+
 c = 0
-if a then c = 33 print(c) end
+if a then 
+  c = 33 
+  print(c)
+end
 
 print(c)
 """
 
-test_3 =  "print(assert(mul(2, 12), 23))"
+test_3 =  "include \"prelude.sin\" print(assert(mul(2, 12), 23))"
 
 tree = Interpreter().parse(test_2)
 #print(tree)
