@@ -55,6 +55,7 @@ def tokenize(text):
         else:
             position = match.end(0)
 
+
 class ASTNode(object): pass
 
 class Variable(ASTNode):
@@ -145,8 +146,10 @@ class Loop(ASTNode):
         return "(loop {0} {1})".format(self.condition, self.block)
     def execute(self, env=None):
         if env is None: env = {}
+        result = None
         while self.condition.execute(env):
-            self.block.execute(env)
+            result = self.block.execute(env)
+        result = None
 
 class Function(ASTNode):
     def __init__(self, params, code):
