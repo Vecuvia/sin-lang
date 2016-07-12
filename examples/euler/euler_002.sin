@@ -1,0 +1,37 @@
+# Project Euler #2
+# Find the sum of the even terms of the fibonacci sequence up to 4 millions
+include "prelude.sin"
+
+fibonacci = fun (n)
+  if n `eq` 0 then
+    1
+  else
+    a = 1
+    b = 1
+    while n = n `sub` 1 do
+      temp = a `add` b
+      a = b
+      b = temp
+    end
+    b
+  end
+end
+
+is_even = fun (n)
+  not(n `mod` 2)
+end
+
+sum = 0
+i = 0
+n = 0
+while n `lt` 4000000 do
+  n = fibonacci(i)
+  i = i `add` 1
+  sum = sum `add` if is_even(n) then n else 0 end
+  #Workaround for the (bugged) following
+  #if is_even(n) then
+  #  sum = sum `add` n
+  #end
+end
+
+print(sum)

@@ -7,3 +7,4 @@
 - [ ] Rewrite everything, starting from sane specs
 - [x] Make closures work
       Are these actually closures? I think I used the wrong word here.
+- [ ] Fix bug in variable resolution - see `euler_002.sin`

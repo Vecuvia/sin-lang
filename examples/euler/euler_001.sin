@@ -1,0 +1,15 @@
+# Project Euler #1
+# Sum all the multiples of 3 and 5 under 1000
+include "prelude.sin"
+
+multiple = fun (a, b)
+  (a `mod` b) `eq` 0
+end
+
+multiple_3_or_5 = fun (a)
+  (a `multiple` 3) `or` (a `multiple` 5)
+end
+
+result = add `reduce` (multiple_3_or_5 `filter` (1 `range` 1000))
+
+print(result)
