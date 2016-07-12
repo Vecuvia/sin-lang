@@ -10,7 +10,7 @@ So named because I'm bad at names *and* because I probably deserve to burn in he
 
 Probably everything - lemme first write a Brainfuck interpreter in it and I'll come back to you on this. But see in the folder `examples`.
 
-## Yes, but what is it's syntax?
+## Yes, but what is its syntax?
 
 The base syntax is, per the language specification, extremely simple.
 
