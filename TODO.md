@@ -8,3 +8,5 @@
 - [x] Make scope work
 - [x] Fix bug in variable resolution - see `euler_002.sin`
 - [x] Add closures (sort-of)
+- [ ] Syntax for objects
+- [ ] How-to `self` keyword
