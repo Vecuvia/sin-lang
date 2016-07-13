@@ -142,8 +142,17 @@ File = data
   open -> fun (filename, mode)
     {open}(filename, mode)
   end
+  seek -> fun (file, position)
+    if position then
+      {lambda f, p: f.seek(p)}(file, position)
+    end
+    {lambda f: f.seek()}(file)
+  end
   read -> fun (file, bytes)
     {lambda f, b: f.read(b)}(file, bytes)
+  end
+  write -> fun (file, bytes)
+    {lambda f, b: f.write(b)}(file, bytes)
   end
   close -> fun (file)
     {lambda f: f.close()}(file)
