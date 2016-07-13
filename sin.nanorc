@@ -5,11 +5,11 @@ syntax "sin" ".*\.sin$"
 color brightwhite ".+"
 
 color brightmagenta "\<include\>"
-color brightblue "\<(end|if|then|else|while|do|fun)\>"
+color brightblue "\<(end|if|then|else|while|do|fun|data)\>"
 color brightyellow "`[^`]*`"
 color brightcyan "\{[^\}]*\}"
 
-color magenta "\(|\)|\[|\]|=|,"
+color magenta "\(|\)|\[|\]|=|,|->"
 color red "\<([0-9]+)\>"
 color green "\"[^\"]*\""
 color cyan "#.*$"
