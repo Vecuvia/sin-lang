@@ -7,7 +7,7 @@ import re, copy
 
 class Enum(tuple): __getattr__ = tuple.index
 
-Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN ASSIGN PYTHON_CODE IF THEN ELSE END INFIX_CALL FUNCTION COMMA WHILE DO STRING INCLUDE LEFT_SQUARE_PAREN RIGHT_SQUARE_PAREN".split())
+Tokens = Enum("NUMBER IDENTIFIER LEFT_ROUND_PAREN RIGHT_ROUND_PAREN ASSIGN PYTHON_CODE IF THEN ELSE END INFIX_CALL FUNCTION COMMA WHILE DO STRING INCLUDE LEFT_SQUARE_PAREN RIGHT_SQUARE_PAREN OWNERSHIP DATA DOT".split())
 
 class Token(object):
     __slots__ = ["kind", "value", "pos"]
@@ -24,6 +24,8 @@ Token_Patterns = [
     (r'\[', Tokens.LEFT_SQUARE_PAREN),
     (r'\]', Tokens.RIGHT_SQUARE_PAREN),
     (r'=', Tokens.ASSIGN),
+    (r'->', Tokens.OWNERSHIP),
+    (r'\.', Tokens.DOT),
     (r',', Tokens.COMMA),
     (r'[+-]?[0-9]+', Tokens.NUMBER),
     (r'if', Tokens.IF),
@@ -34,6 +36,7 @@ Token_Patterns = [
     (r'while', Tokens.WHILE),
     (r'do', Tokens.DO),
     (r'include', Tokens.INCLUDE),
+    (r'data', Tokens.DATA),
     (r'"[^"\n]*"', Tokens.STRING),
     (r'`[A-Za-z_][A-Za-z0-9_]*`', Tokens.INFIX_CALL),
     (r'{[^\}]*}', Tokens.PYTHON_CODE),
@@ -116,6 +119,14 @@ class Literal(ASTNode):
             return [item.execute(env) for item in self.value]
         return self.value
 
+class PropertyAccess(ASTNode):
+    def __init__(self, value, key):
+        self.value, self.key = value, key
+    def __str__(self):
+        return "(. {0} {1})".format(self.value, self.key)
+    def execute(self, env):
+        return self.value.execute(env).data[self.key]
+
 class ListAccess(ASTNode):
     def __init__(self, value, index):
         self.value, self.index = value, index
@@ -163,7 +174,15 @@ class Assign(ASTNode):
         return "(! {0} {1})".format(self.variable, self.expression)
     def execute(self, env):
         value = self.expression.execute(env)
-        env[self.variable.name] = value
+        if type(self.variable) is Variable:
+            env[self.variable.name] = value
+        elif type(self.variable) is ListAccess:
+            obj = self.variable.value.execute(env)
+            index = self.variable.index.execute(env)
+            obj[index] = value
+        elif type(self.variable) is PropertyAccess:
+            obj = self.variable.value.execute(env)
+            obj.data[self.variable.key] = value
         return value
 
 class Block(ASTNode):
@@ -219,6 +238,16 @@ class Function(ASTNode):
             #print(name, param)
             env.data[name] = param
         return self.code.execute(env)
+
+class Object(ASTNode):
+    def __init__(self, data):
+        self.data = data
+    def __str__(self):
+        return "(obj {0})".format(self.data)
+    def execute(self, env):
+        for key in self.data:
+            self.data[key] = self.data[key].execute(env)
+        return self
 
 class Interpreter(object):
     def parse(self, text):
@@ -294,6 +323,15 @@ class Interpreter(object):
             code = self.block()
             self.expect(Tokens.END)
             return Function(params, code)
+        elif self.accept(Tokens.DATA):
+            data = {}
+            while self.accept(Tokens.IDENTIFIER):
+                key = self.token.value
+                self.expect(Tokens.OWNERSHIP)
+                value = self.expression()
+                data[key] = value
+            self.expect(Tokens.END)
+            return Object(data)
     def primary(self):
         left = self.atom()
         if self.accept(Tokens.LEFT_ROUND_PAREN):
@@ -312,6 +350,10 @@ class Interpreter(object):
             index = self.expression()
             self.expect(Tokens.RIGHT_SQUARE_PAREN)
             return ListAccess(left, index)
+        elif self.accept(Tokens.DOT):
+            self.advance()
+            key = self.token.value
+            return PropertyAccess(left, key)
         return left
     def expression(self):
         left = self.primary()
