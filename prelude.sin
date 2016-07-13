@@ -135,3 +135,17 @@ filter = fun (f, l)
   end
   nl
 end
+
+# Files
+
+File = data
+  open -> fun (filename, mode)
+    {open}(filename, mode)
+  end
+  read -> fun (file, bytes)
+    {lambda f, b: f.read(b)}(file, bytes)
+  end
+  close -> fun (file)
+    {lambda f: f.close()}(file)
+  end
+end
