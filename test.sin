@@ -104,8 +104,10 @@ assert(b[2], 3)
 obj = data
   a -> 2
   b -> 3
-  c -> fun (a)
-    a `add` 2
+  adder -> fun (n)
+    fun (a)
+      a `add` n
+    end
   end
 end
 
@@ -113,7 +115,7 @@ obj.b = 4
 
 assert(obj.a, 2)
 assert(obj.b, 4)
-print(obj.c(2))
-assert(obj.c(obj.b), 6)
+#TODO: fix this
+assert((obj.adder(2))(obj.b), 6)
 
 print("All tests passed.")
