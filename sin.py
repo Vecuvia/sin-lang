@@ -3,7 +3,7 @@
 
 Interpreter for the **sin** (simple-interpreted) language.
 """
-import re
+import re, copy
 
 class Enum(tuple): __getattr__ = tuple.index
 
@@ -144,6 +144,7 @@ class Call(ASTNode):
         try:
             return function.call(env, params)
         except AttributeError:
+            print(self.name, function)
             raise RuntimeError("{0} is not a function".format(self.name))
 
 class PyCall(ASTNode):
@@ -203,13 +204,17 @@ class Loop(ASTNode):
 class Function(ASTNode):
     def __init__(self, params, code):
         self.params, self.code = params, code
+        self.thunk = None
     def __str__(self):
         return "(lambda ({0}) {1})".format(self.params, self.code)
-    def execute(self, env=None):
-        return self
+    def execute(self, env):
+        new_instance = copy.copy(self)
+        new_instance.thunk = copy.copy(env.data)
+        return new_instance
     def call(self, env, params):
         #print("**", self)
         env = Environment(parent=env)
+        env.data.update(self.thunk)
         for name, param in zip(self.params, params):
             #print(name, param)
             env.data[name] = param
@@ -299,7 +304,7 @@ class Interpreter(object):
                 self.accept(Tokens.COMMA)
                 param = self.expression()
             self.expect(Tokens.RIGHT_ROUND_PAREN)
-            if type(left) in (Variable, Function, Condition):
+            if type(left) in (Variable, Function, Condition, Call):
                 return Call(left, *params)
             elif type(left) is PyLiteral:
                 return PyCall(eval(left.value), *params)
