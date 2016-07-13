@@ -334,19 +334,7 @@ class Interpreter(object):
             return Object(data)
     def primary(self):
         left = self.atom()
-        if self.accept(Tokens.LEFT_ROUND_PAREN):
-            params = []
-            param = self.expression()
-            while param is not None:
-                params.append(param)
-                self.accept(Tokens.COMMA)
-                param = self.expression()
-            self.expect(Tokens.RIGHT_ROUND_PAREN)
-            if type(left) in (Variable, Function, Condition, Call):
-                return Call(left, *params)
-            elif type(left) is PyLiteral:
-                return PyCall(eval(left.value), *params)
-        elif self.accept(Tokens.LEFT_SQUARE_PAREN):
+        if self.accept(Tokens.LEFT_SQUARE_PAREN):
             index = self.expression()
             self.expect(Tokens.RIGHT_SQUARE_PAREN)
             return ListAccess(left, index)
@@ -355,8 +343,23 @@ class Interpreter(object):
             key = self.token.value
             return PropertyAccess(left, key)
         return left
-    def expression(self):
+    def call(self):
         left = self.primary()
+        if self.accept(Tokens.LEFT_ROUND_PAREN):
+            params = []
+            param = self.expression()
+            while param is not None:
+                params.append(param)
+                self.accept(Tokens.COMMA)
+                param = self.expression()
+            self.expect(Tokens.RIGHT_ROUND_PAREN)
+            if type(left) is PyLiteral:
+                return PyCall(eval(left.value), *params)
+            else:
+                return Call(left, *params)
+        return left
+    def expression(self):
+        left = self.call()
         if self.accept(Tokens.INFIX_CALL):
             operation = self.token.value[1:-1]
             right = self.expression()
