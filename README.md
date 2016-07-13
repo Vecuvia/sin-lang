@@ -79,6 +79,7 @@ end
         | "if" <expression> "then" <block> [ "else" <block> ] "end"
         | "while" <expression> "do" <block> "end"
         | "fun" "(" <identifier_list> ")" <block> "end"
+        | "data" [ <identifier> "->" <expression> ]* "end"
 <python_code> := "{" <code> "}"
 <infix> := "`" <identifier> "`"
 <expression_list> := <expression> [ "," <expression_list> ]
