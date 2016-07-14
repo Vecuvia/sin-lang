@@ -72,19 +72,19 @@ class Environment(object):
             return default
         return value
     def __getitem__(self, key):
+        if key in self.data:
+            return self.data[key]
         parent = self.parent
         while parent:
             if key in parent.data:
                 return parent.data[key]
             parent = parent.parent
-        else:
-            return self.data.get(key, None)
     def __contains__(self, key):
         if key in self.data:
             return True
         return False
     def __setitem__(self, key, value):
-        # Fix keys in immediate scope being shadowed by parents
+        # Fix keys in immediate scope being shadowed by the parent
         if key in self.data:
             self.data[key] = value
             return
@@ -106,7 +106,7 @@ class Variable(ASTNode):
         self.name = name
     def __str__(self):
         return "(var {0})".format(self.name)
-    def execute(self, env):
+    def execute(self, env, *args):
         return env.get(self.name, None)
 
 class Literal(ASTNode):
@@ -114,7 +114,7 @@ class Literal(ASTNode):
         self.value = value
     def __str__(self):
         return "(lit {0})".format(self.value)
-    def execute(self, env):
+    def execute(self, env, *args):
         if type(self.value) is list:
             return [item.execute(env) for item in self.value]
         return self.value
@@ -124,7 +124,7 @@ class PropertyAccess(ASTNode):
         self.value, self.key = value, key
     def __str__(self):
         return "(. {0} {1})".format(self.value, self.key)
-    def execute(self, env):
+    def execute(self, env, *args):
         return self.value.execute(env).data[self.key]
 
 class ListAccess(ASTNode):
@@ -132,7 +132,7 @@ class ListAccess(ASTNode):
         self.value, self.index = value, index
     def __str__(self):
         return "({0} @ {1})".format(self.value, self.index)
-    def execute(self, env):
+    def execute(self, env, *args):
         return self.value.execute(env)[self.index.execute(env)]
 
 class PyLiteral(ASTNode):
@@ -140,7 +140,7 @@ class PyLiteral(ASTNode):
         self.value = value
     def __str__(self):
         return "(py {0})".format(self.value)
-    def execute(self, env):
+    def execute(self, env, *args):
         return eval(self.value)
 
 class Call(ASTNode):
@@ -148,7 +148,7 @@ class Call(ASTNode):
         self.name, self.params = name, params
     def __str__(self):
         return "(call {0} {1})".format(self.name, " ".join(map(str, self.params)))
-    def execute(self, env):
+    def execute(self, env, *args):
         env = Environment(parent=env)
         function = self.name.execute(env)
         params = [param.execute(env) for param in self.params]
@@ -163,7 +163,7 @@ class PyCall(ASTNode):
         self.function, self.params = function, params
     def __str__(self):
         return "({0} {1})".format(self.function.__name__, " ".join(map(str, self.params)))
-    def execute(self, env):
+    def execute(self, env, *args):
         env = Environment(parent=env)
         return self.function(*[param.execute(env) for param in self.params])
 
@@ -172,10 +172,13 @@ class Assign(ASTNode):
         self.variable, self.expression = variable, expression
     def __str__(self):
         return "(! {0} {1})".format(self.variable, self.expression)
-    def execute(self, env):
+    def execute(self, env, in_function=False):
         value = self.expression.execute(env)
         if type(self.variable) is Variable:
-            env[self.variable.name] = value
+            if in_function:
+                env.data[self.variable.name] = value
+            else:
+                env[self.variable.name] = value
         elif type(self.variable) is ListAccess:
             obj = self.variable.value.execute(env)
             index = self.variable.index.execute(env)
@@ -190,10 +193,10 @@ class Block(ASTNode):
         self.expressions = expressions
     def __str__(self):
         return "(begin {0})".format("\n".join(map(str, self.expressions)))
-    def execute(self, env):
+    def execute(self, env, *args):
         result = None
         for expression in self.expressions:
-            result = expression.execute(env)
+            result = expression.execute(env, *args)
         return result
 
 class Condition(ASTNode):
@@ -201,7 +204,7 @@ class Condition(ASTNode):
         self.condition, self.if_true, self.if_false = condition, if_true, if_false
     def __str__(self):
         return "(cond {0} {1} {2})".format(self.condition, self.if_true, self.if_false)
-    def execute(self, env):
+    def execute(self, env, *args):
         env = Environment(parent=env)
         if self.condition.execute(env):
             return self.if_true.execute(env)
@@ -213,7 +216,7 @@ class Loop(ASTNode):
         self.condition, self.block = condition, block
     def __str__(self):
         return "(loop {0} {1})".format(self.condition, self.block)
-    def execute(self, env):
+    def execute(self, env, *args):
         env = Environment(parent=env)
         result = None
         while self.condition.execute(env):
@@ -226,7 +229,7 @@ class Function(ASTNode):
         self.thunk = None
     def __str__(self):
         return "(lambda ({0}) {1})".format(self.params, self.code)
-    def execute(self, env):
+    def execute(self, env, *args):
         new_instance = copy.copy(self)
         new_instance.thunk = copy.copy(env.data)
         return new_instance
@@ -237,14 +240,14 @@ class Function(ASTNode):
         for name, param in zip(self.params, params):
             #print(name, param)
             env.data[name] = param
-        return self.code.execute(env)
+        return self.code.execute(env, True)
 
 class Object(ASTNode):
     def __init__(self, data):
         self.data = data
     def __str__(self):
         return "(obj {0})".format(self.data)
-    def execute(self, env):
+    def execute(self, env, *args):
         for key in self.data:
             self.data[key] = self.data[key].execute(env)
         return self

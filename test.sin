@@ -54,13 +54,13 @@ assert(fibonacci(5), 8)
 
 # Testing environments
 
-closure = fun ()
+fnct = fun ()
   a = 3
   assert(a, 3)
 end
 
-closure()
-assert(a, None) #TODO: this isn't actually parsed
+fnct()
+assert(a, None)
 
 a = 0
 if 1 then

@@ -11,3 +11,6 @@
 - [x] Syntax for objects
       I probably messed up something
 - [ ] How-to `self` keyword
+- [x] Fix scope
+- [ ] Fix tokenizing (namely, identifiers like `function` breaking the parser)
+- [ ] Add None, True, False
