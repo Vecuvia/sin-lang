@@ -231,15 +231,15 @@ class Function(ASTNode):
         return "(lambda ({0}) {1})".format(self.params, self.code)
     def execute(self, env, *args):
         new_instance = copy.copy(self)
+        #TODO: this doesn't really do what it should do
         new_instance.thunk = copy.copy(env.data)
         return new_instance
     def call(self, env, params):
-        #print("**", self)
         env = Environment(parent=env)
-        env.data.update(self.thunk)
+        env.data = self.thunk#.update(self.thunk)
         for name, param in zip(self.params, params):
-            #print(name, param)
             env.data[name] = param
+        #TODO: this is ugly. Find another way to do it.
         return self.code.execute(env, True)
 
 class Object(ASTNode):
