@@ -34,14 +34,10 @@ assert(factorial(6), 720)
 # Testing fibonacci
 
 fibonacci = fun (n)
-  if n `eq` 0 then
+  if n `lt` 2 then
     1
   else
-    if n `eq` 1 then
-      1
-    else
-      fibonacci(n `sub` 1) `add` fibonacci(n `sub` 2)
-    end
+    fibonacci(n `sub` 1) `add` fibonacci(n `sub` 2)
   end
 end
 

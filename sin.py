@@ -236,7 +236,8 @@ class Function(ASTNode):
         return new_instance
     def call(self, env, params):
         env = Environment(parent=env)
-        env.data = self.thunk#.update(self.thunk)
+        #env.data = self.thunk #.update(self.thunk)
+        env.data.update(self.thunk)
         for name, param in zip(self.params, params):
             env.data[name] = param
         #TODO: this is ugly. Find another way to do it.
